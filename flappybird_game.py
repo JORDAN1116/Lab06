@@ -15,6 +15,7 @@ GREEN = (0, 200, 0)
 BROWN = (139, 69, 19)
 WHITE = (255, 255, 255)
 ORANGE = (255, 165, 0)
+GOLD = (255, 215, 0)
 
 # Game Physics Constants
 GRAVITY = 0.5
@@ -89,6 +90,25 @@ class Pipe:
         pygame.draw.rect(screen, GREEN, bottom_cap)
         pygame.draw.rect(screen, BLACK, bottom_cap, 3)
 
+class Coin:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.radius = 15
+        self.rect = pygame.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
+
+    def update(self):
+        self.x -= PIPE_SPEED
+        self.rect.x = self.x - self.radius
+
+    def draw(self, screen):
+        # Outer circle (Gold)
+        pygame.draw.circle(screen, GOLD, (int(self.x), int(self.y)), self.radius)
+        # Inner circle (lighter Gold for shine)
+        pygame.draw.circle(screen, WHITE, (int(self.x - 5), int(self.y - 5)), 4)
+        # Border
+        pygame.draw.circle(screen, BLACK, (int(self.x), int(self.y)), self.radius, 2)
+
 class FlappyBirdGame:
     def __init__(self):
         pygame.init()
@@ -103,6 +123,7 @@ class FlappyBirdGame:
     def reset_game(self):
         self.bird = Bird()
         self.pipes = []
+        self.coins = []
         self.score = 0
         self.game_active = False
         self.game_over = False
@@ -143,9 +164,17 @@ class FlappyBirdGame:
             # Manage Pipes
             current_time = pygame.time.get_ticks()
             if current_time - self.last_pipe_time > PIPE_FREQUENCY:
-                self.pipes.append(Pipe(SCREEN_WIDTH))
+                new_pipe = Pipe(SCREEN_WIDTH)
+                self.pipes.append(new_pipe)
+                
+                # Spawn coin in the gap
+                coin_x = new_pipe.x + new_pipe.width // 2
+                coin_y = new_pipe.gap_y + PIPE_GAP // 2
+                self.coins.append(Coin(coin_x, coin_y))
+                
                 self.last_pipe_time = current_time
 
+            # Update Pipes
             for pipe in self.pipes[:]:
                 pipe.update()
                 
@@ -154,7 +183,7 @@ class FlappyBirdGame:
                     self.game_over = True
                     self.game_active = False
                 
-                # Scoring
+                # Scoring (passing pipes)
                 if not pipe.passed and pipe.x + pipe.width < self.bird.x:
                     pipe.passed = True
                     self.score += 1
@@ -163,12 +192,29 @@ class FlappyBirdGame:
                 if pipe.x + pipe.width < 0:
                     self.pipes.remove(pipe)
 
+            # Update Coins
+            for coin in self.coins[:]:
+                coin.update()
+                
+                # Collision detection (bird collects coin)
+                if self.bird.rect.colliderect(coin.rect):
+                    self.score += 2
+                    self.coins.remove(coin)
+                
+                # Remove off-screen coins
+                elif coin.x + coin.radius < 0:
+                    self.coins.remove(coin)
+
     def draw(self):
         self.screen.fill(SKY_BLUE)
         
         # Draw Pipes
         for pipe in self.pipes:
             pipe.draw(self.screen)
+            
+        # Draw Coins
+        for coin in self.coins:
+            coin.draw(self.screen)
             
         # Draw Ground/Ceiling decoration
         pygame.draw.rect(self.screen, BROWN, (0, SCREEN_HEIGHT - 10, SCREEN_WIDTH, 10))
