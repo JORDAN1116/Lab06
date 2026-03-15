@@ -3,33 +3,35 @@ import random
 import sys
 
 # Constants
-SCREEN_WIDTH = 400
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 600
+SCREEN_HEIGHT = 800
 FPS = 60
 
 # Colors
-SKY_BLUE = (135, 206, 235)
+SKY_BLUE = (0, 150, 255)
 YELLOW = (255, 255, 0)
 BLACK = (0, 0, 0)
-GREEN = (34, 139, 34)
+GREEN = (0, 200, 0)
 BROWN = (139, 69, 19)
 WHITE = (255, 255, 255)
+ORANGE = (255, 165, 0)
 
 # Game Physics Constants
 GRAVITY = 0.5
 FLAP_STRENGTH = -8
-PIPE_SPEED = 3
-PIPE_GAP = 150
-PIPE_WIDTH = 70
+PIPE_SPEED = 4
+PIPE_GAP = 180
+PIPE_WIDTH = 80
 PIPE_FREQUENCY = 1500  # milliseconds
 
 class Bird:
     def __init__(self):
-        self.x = 50
+        self.x = 100
         self.y = SCREEN_HEIGHT // 2
-        self.radius = 15
+        self.width = 40
+        self.height = 30
         self.velocity = 0
-        self.rect = pygame.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def flap(self):
         self.velocity = FLAP_STRENGTH
@@ -37,15 +39,24 @@ class Bird:
     def update(self):
         self.velocity += GRAVITY
         self.y += self.velocity
-        self.rect.centery = self.y
+        self.rect.y = self.y
 
     def draw(self, screen):
-        # Body (Yellow circle)
-        pygame.draw.circle(screen, YELLOW, (int(self.x), int(self.y)), self.radius)
-        # Eye (Small black circle)
-        eye_x = self.x + 7
-        eye_y = self.y - 5
-        pygame.draw.circle(screen, BLACK, (int(eye_x), int(eye_y)), 3)
+        # Body (Yellow rectangle)
+        pygame.draw.rect(screen, YELLOW, self.rect)
+        pygame.draw.rect(screen, BLACK, self.rect, 2)
+        
+        # Eye (Small white/black square)
+        eye_rect = pygame.Rect(self.rect.right - 12, self.rect.top + 5, 8, 8)
+        pygame.draw.rect(screen, WHITE, eye_rect)
+        pygame.draw.rect(screen, BLACK, eye_rect, 1)
+        pupil_rect = pygame.Rect(self.rect.right - 8, self.rect.top + 8, 3, 3)
+        pygame.draw.rect(screen, BLACK, pupil_rect)
+        
+        # Beak (Orange rectangle)
+        beak_rect = pygame.Rect(self.rect.right, self.rect.top + 15, 12, 10)
+        pygame.draw.rect(screen, ORANGE, beak_rect)
+        pygame.draw.rect(screen, BLACK, beak_rect, 2)
 
 class Pipe:
     def __init__(self, x):
@@ -63,17 +74,29 @@ class Pipe:
         self.bottom_rect.x = self.x
 
     def draw(self, screen):
+        # Main pipe body
         pygame.draw.rect(screen, GREEN, self.top_rect)
+        pygame.draw.rect(screen, BLACK, self.top_rect, 3)
         pygame.draw.rect(screen, GREEN, self.bottom_rect)
+        pygame.draw.rect(screen, BLACK, self.bottom_rect, 3)
+        
+        # Pipe caps
+        cap_height = 35
+        top_cap = pygame.Rect(self.x - 5, self.gap_y - cap_height, self.width + 10, cap_height)
+        bottom_cap = pygame.Rect(self.x - 5, self.gap_y + PIPE_GAP, self.width + 10, cap_height)
+        pygame.draw.rect(screen, GREEN, top_cap)
+        pygame.draw.rect(screen, BLACK, top_cap, 3)
+        pygame.draw.rect(screen, GREEN, bottom_cap)
+        pygame.draw.rect(screen, BLACK, bottom_cap, 3)
 
 class FlappyBirdGame:
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption("Flappy Bird")
+        pygame.display.set_caption("8-Bit Flappy Bird")
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont('Arial', 32)
-        self.large_font = pygame.font.SysFont('Arial', 64)
+        self.font = pygame.font.SysFont('Courier', 32, bold=True)
+        self.large_font = pygame.font.SysFont('Courier', 64, bold=True)
         
         self.reset_game()
 
@@ -155,7 +178,11 @@ class FlappyBirdGame:
         
         # Draw Score
         score_surface = self.font.render(f"Score: {self.score}", True, WHITE)
-        score_rect = score_surface.get_rect(center=(SCREEN_WIDTH // 2, 50))
+        score_rect = score_surface.get_rect(topright=(SCREEN_WIDTH - 20, 20))
+        # Draw a small shadow for score to make it pop
+        shadow_surface = self.font.render(f"Score: {self.score}", True, BLACK)
+        shadow_rect = shadow_surface.get_rect(topright=(SCREEN_WIDTH - 18, 22))
+        self.screen.blit(shadow_surface, shadow_rect)
         self.screen.blit(score_surface, score_rect)
         
         # Game Over Message
